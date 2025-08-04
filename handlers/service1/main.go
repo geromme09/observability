@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"observability/logs"
@@ -32,6 +34,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/test", TestHandler(l))
 	mux.Handle("/test-error", TestErrorHandler(l))
+	mux.Handle("/greet", GreetHandler(l))
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	})
@@ -111,5 +114,41 @@ func TestErrorHandler(l logs.OtelLogging) http.HandlerFunc {
 
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Error scenario completed! Logs captured."))
+	}
+}
+
+type GreetRequest struct {
+	Name    string `json:"name"`
+	Surname string `json:"surname"`
+}
+
+type GreetResponse struct {
+	Message string `json:"message"`
+}
+
+func GreetHandler(l logs.OtelLogging) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
+		tracer := otel.Tracer("test-service")
+		_, span := tracer.Start(ctx, "Handle /greet")
+		defer span.End()
+
+		var req GreetRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			l.Error(span, "Invalid JSON", err.Error())
+			http.Error(w, "Bad request", http.StatusBadRequest)
+			return
+		}
+
+		l.LogJson(span, "request_body", req)
+
+		resp := GreetResponse{
+			Message: fmt.Sprintf("Hello %s %s!", req.Name, req.Surname),
+		}
+
+		l.LogJson(span, "response_body", resp)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
 	}
 }

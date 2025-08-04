@@ -1,6 +1,7 @@
 package logs
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -38,6 +39,7 @@ type OtelLogging interface {
 	Fatalf(span trace.Span, template string, args ...interface{})
 	Logf(span trace.Span, template string, args ...interface{})
 	LogHttpResponse(span trace.Span, meta RequestMeta)
+	LogJson(span trace.Span, label string, value interface{})
 }
 
 type otelLog struct {
@@ -62,6 +64,24 @@ func (l *otelLog) logSpan(span trace.Span, level, message string) (string, strin
 		return traceID, spanID
 	}
 	return "", ""
+}
+
+func (l *otelLog) LogJson(span trace.Span, label string, value interface{}) {
+	jsonBytes, err := json.Marshal(value)
+	if err != nil {
+		l.logger.Error("Failed to marshal JSON",
+			zap.String("label", label),
+			zap.Error(err),
+		)
+		return
+	}
+
+	traceID, spanID := l.logSpan(span, "INFO", label)
+	l.logger.Info("Logging JSON",
+		zap.String(label, string(jsonBytes)),
+		zap.String("trace_id", traceID),
+		zap.String("span_id", spanID),
+	)
 }
 
 func (l *otelLog) LogHttpResponse(span trace.Span, meta RequestMeta) {
