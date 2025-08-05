@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"observability/logs"
@@ -118,12 +117,104 @@ func TestErrorHandler(l logs.OtelLogging) http.HandlerFunc {
 }
 
 type GreetRequest struct {
-	Name    string `json:"name"`
-	Surname string `json:"surname"`
+	Name         string       `json:"Name"`
+	Surname      string       `json:"Surname"`
+	Contact      Contact      `json:"Contact"`
+	Address      Address      `json:"Address"`
+	Metadata     Metadata     `json:"Metadata"`
+	Preferences  Preferences  `json:"Preferences"`
+	CustomFields CustomFields `json:"CustomFields"`
+}
+
+type Contact struct {
+	Email           string      `json:"Email"`
+	Phone           string      `json:"Phone"`
+	PreferredMethod string      `json:"PreferredMethod"`
+	Social          SocialMedia `json:"Social"`
+}
+
+type SocialMedia struct {
+	Twitter  string `json:"Twitter"`
+	LinkedIn string `json:"LinkedIn"`
+}
+
+type Address struct {
+	Street      string      `json:"Street"`
+	City        string      `json:"City"`
+	State       string      `json:"State"`
+	PostalCode  string      `json:"PostalCode"`
+	Country     string      `json:"Country"`
+	Coordinates Coordinates `json:"Coordinates"`
+}
+
+type Coordinates struct {
+	Latitude  float64 `json:"Latitude"`
+	Longitude float64 `json:"Longitude"`
+}
+
+type Metadata struct {
+	Timestamp string   `json:"Timestamp"`
+	RequestID string   `json:"RequestID"`
+	Tags      []string `json:"Tags"`
+	Flags     Flags    `json:"Flags"`
+	Source    Source   `json:"Source"`
+}
+
+type Flags struct {
+	Urgent        bool `json:"Urgent"`
+	TestMode      bool `json:"TestMode"`
+	IncludeExtras bool `json:"IncludeExtras"`
+	RetryEnabled  bool `json:"RetryEnabled"`
+}
+
+type Source struct {
+	IP      string `json:"IP"`
+	Device  string `json:"Device"`
+	Browser string `json:"Browser"`
+}
+
+type Preferences struct {
+	Language      string        `json:"Language"`
+	Timezone      string        `json:"Timezone"`
+	Theme         string        `json:"Theme"`
+	Notifications Notifications `json:"Notifications"`
+	Accessibility Accessibility `json:"Accessibility"`
+}
+
+type Notifications struct {
+	Email bool `json:"Email"`
+	SMS   bool `json:"SMS"`
+	Push  bool `json:"Push"`
+}
+
+type Accessibility struct {
+	HighContrast bool   `json:"HighContrast"`
+	FontSize     string `json:"FontSize"`
+}
+
+type CustomFields struct {
+	ReferralCode  string         `json:"ReferralCode"`
+	LoyaltyPoints int            `json:"LoyaltyPoints"`
+	VIPStatus     string         `json:"VIPStatus"`
+	Subscriptions []Subscription `json:"Subscriptions"`
+}
+
+type Subscription struct {
+	Name   string `json:"Name"`
+	Active bool   `json:"Active"`
 }
 
 type GreetResponse struct {
-	Message string `json:"message"`
+	Message string `json:"Message"`
+}
+type Response struct {
+	Name         string       `json:"Name"`
+	Surname      string       `json:"Surname"`
+	Contact      Contact      `json:"Contact"`
+	Address      Address      `json:"Address"`
+	Metadata     Metadata     `json:"Metadata"`
+	Preferences  Preferences  `json:"Preferences"`
+	CustomFields CustomFields `json:"CustomFields"`
 }
 
 func GreetHandler(l logs.OtelLogging) http.HandlerFunc {
@@ -140,15 +231,140 @@ func GreetHandler(l logs.OtelLogging) http.HandlerFunc {
 			return
 		}
 
-		l.LogJson(span, "request_body", req)
+		l.LogJson(span, "request.body", req)
 
-		resp := GreetResponse{
-			Message: fmt.Sprintf("Hello %s %s!", req.Name, req.Surname),
+		// Create multiple sample responses
+		var responses = []Response{
+			{
+				Name:    "Alice",
+				Surname: "Johnson",
+				Contact: Contact{
+					Email:           "alice@example.com",
+					Phone:           "+1234567890",
+					PreferredMethod: "Email",
+					Social: SocialMedia{
+						Twitter:  "@alice",
+						LinkedIn: "alice-johnson",
+					},
+				},
+				Address: Address{
+					Street:     "123 Main St",
+					City:       "Metropolis",
+					State:      "CA",
+					PostalCode: "90210",
+					Country:    "USA",
+					Coordinates: Coordinates{
+						Latitude:  34.0522,
+						Longitude: -118.2437,
+					},
+				},
+				Metadata: Metadata{
+					Timestamp: "2025-08-04T20:50:00Z",
+					RequestID: "req-789",
+					Tags:      []string{"premium", "verified"},
+					Flags: Flags{
+						Urgent:        true,
+						TestMode:      false,
+						IncludeExtras: true,
+						RetryEnabled:  true,
+					},
+					Source: Source{
+						IP:      "192.168.1.1",
+						Device:  "iPhone 14",
+						Browser: "Safari",
+					},
+				},
+				Preferences: Preferences{
+					Language: "en",
+					Timezone: "PST",
+					Theme:    "dark",
+					Notifications: Notifications{
+						Email: true,
+						SMS:   false,
+						Push:  true,
+					},
+					Accessibility: Accessibility{
+						HighContrast: false,
+						FontSize:     "medium",
+					},
+				},
+				CustomFields: CustomFields{
+					ReferralCode:  "REF123",
+					LoyaltyPoints: 1500,
+					VIPStatus:     "Gold",
+					Subscriptions: []Subscription{
+						{Name: "newsletter", Active: true},
+					},
+				},
+			},
+			{
+				Name:    "Bob",
+				Surname: "Smith",
+				Contact: Contact{
+					Email:           "bob@example.com",
+					Phone:           "+9876543210",
+					PreferredMethod: "Phone",
+					Social: SocialMedia{
+						Twitter:  "@bobsmith",
+						LinkedIn: "bob-smith",
+					},
+				},
+				Address: Address{
+					Street:     "456 Elm St",
+					City:       "Gotham",
+					State:      "NY",
+					PostalCode: "10001",
+					Country:    "USA",
+					Coordinates: Coordinates{
+						Latitude:  40.7128,
+						Longitude: -74.0060,
+					},
+				},
+				Metadata: Metadata{
+					Timestamp: "2025-08-04T21:00:00Z",
+					RequestID: "req-790",
+					Tags:      []string{"standard"},
+					Flags: Flags{
+						Urgent:        false,
+						TestMode:      true,
+						IncludeExtras: false,
+						RetryEnabled:  false,
+					},
+					Source: Source{
+						IP:      "10.0.0.2",
+						Device:  "Android",
+						Browser: "Chrome",
+					},
+				},
+				Preferences: Preferences{
+					Language: "es",
+					Timezone: "EST",
+					Theme:    "light",
+					Notifications: Notifications{
+						Email: false,
+						SMS:   true,
+						Push:  false,
+					},
+					Accessibility: Accessibility{
+						HighContrast: true,
+						FontSize:     "large",
+					},
+				},
+				CustomFields: CustomFields{
+					ReferralCode:  "REF456",
+					LoyaltyPoints: 800,
+					VIPStatus:     "Silver",
+					Subscriptions: []Subscription{
+						{Name: "alerts", Active: false},
+					},
+				},
+			},
 		}
 
-		l.LogJson(span, "response_body", resp)
+		// Log the full slice of responses
+		l.LogJson(span, "response.body", responses)
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		json.NewEncoder(w).Encode(responses)
 	}
 }

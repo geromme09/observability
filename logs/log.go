@@ -61,27 +61,36 @@ func (l *otelLog) logSpan(span trace.Span, level, message string) (string, strin
 			attribute.String("trace_id", traceID),
 			attribute.String("span_id", spanID),
 		)
+
+		fmt.Printf("Span %s\n", spanID)
 		return traceID, spanID
 	}
 	return "", ""
 }
 
 func (l *otelLog) LogJson(span trace.Span, label string, value interface{}) {
-	jsonBytes, err := json.Marshal(value)
+	// Extract trace and span IDs
+	traceID, spanID := l.logSpan(span, "INFO", label)
+
+	// Convert value to pretty JSON string
+	jsonBytes, err := json.MarshalIndent(value, "", "  ")
 	if err != nil {
 		l.logger.Error("Failed to marshal JSON",
 			zap.String("label", label),
 			zap.Error(err),
+			zap.String("trace_id", traceID),
+			zap.String("span_id", spanID),
 		)
 		return
 	}
+	stringified := string(jsonBytes)
 
-	traceID, spanID := l.logSpan(span, "INFO", label)
-	l.logger.Info("Logging JSON",
-		zap.String(label, string(jsonBytes)),
+	// Log everything as a string with type info
+	l.logger.Info(fmt.Sprintf("%s : %s", label, stringified),
 		zap.String("trace_id", traceID),
 		zap.String("span_id", spanID),
 	)
+
 }
 
 func (l *otelLog) LogHttpResponse(span trace.Span, meta RequestMeta) {
